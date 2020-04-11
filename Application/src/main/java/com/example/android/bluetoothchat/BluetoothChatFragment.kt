@@ -18,6 +18,7 @@ package com.example.android.bluetoothchat
 
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -28,6 +29,8 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.android.common.logger.Log
+import com.google.android.material.snackbar.Snackbar
+import java.util.*
 
 /**
  * This fragment controls Bluetooth to communicate with other devices.
@@ -60,6 +63,8 @@ class BluetoothChatFragment : Fragment() {
      * Member object for the chat services
      */
     private var mChatService: BluetoothChatService? = null
+
+    private var mKey: String? = null
 
     /**
      * The Handler that gets information back from the BluetoothChatService
@@ -161,9 +166,28 @@ class BluetoothChatFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-//        mConversationView = view.findViewById(R.id.`in`)
-//        mOutEditText = view.findViewById(R.id.edit_text_out)
         mSendButton = view.findViewById(R.id.button_send)
+        val resetButton = view.findViewById<Button>(R.id.button_reset)
+        resetButton.setOnClickListener {
+            val prefs = activity!!.getPreferences(Context.MODE_PRIVATE)
+            val key = UUID.randomUUID().toString()
+            with (prefs.edit()) {
+                putString("key", key)
+                commit()
+            }
+            mKey = key
+            Toast.makeText(context, "Reset key to $mKey", Toast.LENGTH_SHORT).show()
+        }
+
+        val prefs = activity!!.getPreferences(Context.MODE_PRIVATE)
+        mKey = prefs.getString("key", null)
+        if (mKey == null) {
+            mKey = UUID.randomUUID().toString()
+            with(prefs.edit()) {
+                putString("key", mKey)
+                commit()
+            }
+        }
     }
 
     /**
@@ -188,8 +212,12 @@ class BluetoothChatFragment : Fragment() {
             if (null != view) {
 //                val textView = view.findViewById<TextView>(R.id.edit_text_out)
 //                val message = textView.text.toString()
-                Log.d("send", "Sending message 'test'")
-                sendMessage("test")
+                if (mKey != null) {
+                    Log.d("send", "Sending message '$mKey'")
+                    sendMessage(mKey!!)
+                } else {
+                    Snackbar.make(view, "There was a problem sending the key", Snackbar.LENGTH_SHORT).show()
+                }
             }
         }
 
